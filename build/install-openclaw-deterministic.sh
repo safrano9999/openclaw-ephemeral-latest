@@ -6,7 +6,7 @@ set -euo pipefail
 : "${OPENCLAW_DETERMINISTIC_ASSET:?OPENCLAW_DETERMINISTIC_ASSET is required}"
 : "${OPENCLAW_DETERMINISTIC_SHA256:?OPENCLAW_DETERMINISTIC_SHA256 is required}"
 
-release_url="https://github.com/safrano9999/openclaw-deterministic/releases/download/${OPENCLAW_DETERMINISTIC_RELEASE_TAG}"
+release_url="https://github.com/safrano9999/openclaw-deterministic-latest/releases/download/${OPENCLAW_DETERMINISTIC_RELEASE_TAG}"
 temporary="$(mktemp -d)"
 trap 'rm -rf "$temporary"' EXIT
 
