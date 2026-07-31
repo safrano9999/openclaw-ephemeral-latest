@@ -1,0 +1,3 @@
+openclaw/openclaw:2026.7.2-beta.5-slim
+openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
+ee929dbb857c717a60f3b2b502db5a6dd31b5c11

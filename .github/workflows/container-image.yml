@@ -1,0 +1,160 @@
+name: openclaw-ephemeral-testing image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Docker image tag in addition to latest
+        required: true
+        default: 2026.7.2-beta.5
+        type: string
+      push_latest:
+        description: Also publish openclaw-ephemeral-testing:latest
+        required: true
+        default: true
+        type: boolean
+      deterministic_release_tag:
+        description: Immutable release tag from safrano9999/openclaw-deterministic-latest
+        required: true
+        type: string
+      deterministic_asset:
+        description: Release tar.gz containing the patched dist directory
+        required: true
+        type: string
+      deterministic_sha256:
+        description: SHA256 of the deterministic release asset
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-ephemeral-testing-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: docker.io/safrano9999/openclaw-ephemeral-testing
+  OPENCLAW_VERSION: 2026.7.2-beta.5
+  OPENCLAW_SOURCE_COMMIT: ee929dbb857c717a60f3b2b502db5a6dd31b5c11
+  OPENCLAW_BASE_IMAGE: docker.io/openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
+  DETERMINISTIC_REPOSITORY: safrano9999/openclaw-deterministic-latest
+
+jobs:
+  test-build-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out testing image source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate immutable inputs and Containerfile contract
+        id: deterministic
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.deterministic_release_tag }}
+          RELEASE_ASSET: ${{ inputs.deterministic_asset }}
+          RELEASE_SHA256: ${{ inputs.deterministic_sha256 }}
+        run: |
+          set -Eeuo pipefail
+
+          [[ "$RELEASE_TAG" =~ ^2026\.7\.2-beta\.5-deterministic\.[0-9]+$ ]] || {
+            printf 'Invalid deterministic release tag: %s\n' "$RELEASE_TAG" >&2
+            exit 1
+          }
+          [[ "$RELEASE_ASSET" == "openclaw-${OPENCLAW_VERSION}-deterministic.tar.gz" ]] || {
+            printf 'Unexpected deterministic asset: %s\n' "$RELEASE_ASSET" >&2
+            exit 1
+          }
+          [[ "$RELEASE_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || {
+            printf 'Invalid deterministic asset SHA256\n' >&2
+            exit 1
+          }
+
+          grep -F -- "$OPENCLAW_BASE_IMAGE" Containerfile >/dev/null
+          grep -F -- "ARG OPENCLAW_VERSION=${OPENCLAW_VERSION}" Containerfile >/dev/null
+          grep -F -- "ARG OPENCLAW_SOURCE_COMMIT=${OPENCLAW_SOURCE_COMMIT}" Containerfile >/dev/null
+          grep -F -- "$DETERMINISTIC_REPOSITORY" build/install-openclaw-deterministic.sh >/dev/null
+
+          {
+            printf 'release_tag=%s\n' "$RELEASE_TAG"
+            printf 'release_asset=%s\n' "$RELEASE_ASSET"
+            printf 'release_sha256=%s\n' "${RELEASE_SHA256,,}"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Run ephemeral configuration tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Verify public deterministic release asset
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.deterministic.outputs.release_tag }}
+          RELEASE_ASSET: ${{ steps.deterministic.outputs.release_asset }}
+          RELEASE_SHA256: ${{ steps.deterministic.outputs.release_sha256 }}
+        run: |
+          set -Eeuo pipefail
+          asset_path="${RUNNER_TEMP}/${RELEASE_ASSET}"
+          release_url="https://github.com/${DETERMINISTIC_REPOSITORY}/releases/download/${RELEASE_TAG}/${RELEASE_ASSET}"
+
+          curl --fail --location --retry 3 --proto '=https' --tlsv1.2 \
+            --output "$asset_path" "$release_url"
+          printf '%s  %s\n' "$RELEASE_SHA256" "$asset_path" | sha256sum --check --strict -
+
+          tar -tzf "$asset_path" >"${RUNNER_TEMP}/deterministic-asset-files.txt"
+          grep -Eq '^(\./)?dist/' "${RUNNER_TEMP}/deterministic-asset-files.txt" || {
+            printf 'Deterministic asset does not contain a top-level dist directory\n' >&2
+            exit 1
+          }
+          if grep -Eq '(^|/)(\.\.|/)(/|$)' "${RUNNER_TEMP}/deterministic-asset-files.txt"; then
+            printf 'Deterministic asset contains an unsafe path\n' >&2
+            exit 1
+          fi
+
+      - name: Resolve Docker tags
+        id: metadata
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          PUSH_LATEST: ${{ inputs.push_latest }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || {
+            printf 'Invalid Docker image tag: %s\n' "$IMAGE_TAG" >&2
+            exit 1
+          }
+
+          {
+            printf 'tags<<EOF\n'
+            printf '%s:%s\n' "$IMAGE_NAME" "$IMAGE_TAG"
+            if [[ "$PUSH_LATEST" == "true" ]]; then
+              printf '%s:latest\n' "$IMAGE_NAME"
+            fi
+            printf 'EOF\n'
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and publish tested image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          build-args: |
+            OPENCLAW_VERSION=${{ env.OPENCLAW_VERSION }}
+            OPENCLAW_SOURCE_COMMIT=${{ env.OPENCLAW_SOURCE_COMMIT }}
+            OPENCLAW_DETERMINISTIC_RELEASE_TAG=${{ steps.deterministic.outputs.release_tag }}
+            OPENCLAW_DETERMINISTIC_ASSET=${{ steps.deterministic.outputs.release_asset }}
+            OPENCLAW_DETERMINISTIC_SHA256=${{ steps.deterministic.outputs.release_sha256 }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

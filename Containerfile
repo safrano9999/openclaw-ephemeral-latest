@@ -1,0 +1,101 @@
+# The runtime base deliberately stays fixed across openclaw-ephemeral releases.
+FROM openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
+
+ARG OPENCLAW_VERSION=2026.7.2-beta.5
+ARG OPENCLAW_SOURCE_COMMIT=ee929dbb857c717a60f3b2b502db5a6dd31b5c11
+ARG OPENCLAW_DETERMINISTIC_RELEASE_TAG
+ARG OPENCLAW_DETERMINISTIC_ASSET
+ARG OPENCLAW_DETERMINISTIC_SHA256
+ARG NOTE_RELEASE_TAG=2026.7.36
+ARG NOTE_RELEASE_SHA256=2d3a4bff771e9dd85b6d39c0a1bb63dd68f99f65d73c6d2caae29eb65a6ba26b
+
+LABEL org.opencontainers.image.revision="${OPENCLAW_SOURCE_COMMIT}"
+
+RUN test -n "${OPENCLAW_DETERMINISTIC_RELEASE_TAG}" \
+ && test -n "${OPENCLAW_DETERMINISTIC_ASSET}" \
+ && test -n "${OPENCLAW_DETERMINISTIC_SHA256}"
+
+LABEL org.opencontainers.image.title="openclaw-ephemeral-testing" \
+      org.opencontainers.image.description="OpenClaw Beta 5 testing lane with NOTE and a fresh environment-derived configuration at every start." \
+      org.opencontainers.image.source="https://github.com/safrano9999/openclaw-ephemeral-testing" \
+      org.opencontainers.image.version="${OPENCLAW_VERSION}" \
+      io.safrano9999.openclaw.version="${OPENCLAW_VERSION}" \
+      io.safrano9999.openclaw-deterministic.release="${OPENCLAW_DETERMINISTIC_RELEASE_TAG}" \
+      io.safrano9999.note.release="${NOTE_RELEASE_TAG}"
+
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl python3 \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY build/install-openclaw-deterministic.sh /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh
+RUN chmod 0755 /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh \
+ && OPENCLAW_VERSION="${OPENCLAW_VERSION}" \
+    OPENCLAW_DETERMINISTIC_RELEASE_TAG="${OPENCLAW_DETERMINISTIC_RELEASE_TAG}" \
+    OPENCLAW_DETERMINISTIC_ASSET="${OPENCLAW_DETERMINISTIC_ASSET}" \
+    OPENCLAW_DETERMINISTIC_SHA256="${OPENCLAW_DETERMINISTIC_SHA256}" \
+    /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh
+
+# Preserve the trusted-container local-media behavior already used by
+# safrano9999-openclaw. This only extends OpenClaw's outbound media roots.
+RUN python3 - <<'PY'
+from pathlib import Path
+
+root = Path("/app/dist")
+target = 'path.join(resolvedStateDir, "sandboxes")'
+replacement = target + ',\n\t\t"/"'
+for path in root.glob("local-roots-*.js"):
+    text = path.read_text()
+    if replacement not in text:
+        path.write_text(text.replace(target, replacement))
+    break
+else:
+    raise SystemExit("OpenClaw local-roots bundle not found")
+PY
+
+ENV HOME=/root \
+    OPENCLAW_STATE_DIR=/root/.openclaw \
+    OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json \
+    OPENCLAW_WORKSPACE_DIR=/root/.openclaw/workspace \
+    OPENCLAW_GATEWAY_PORT=18789 \
+    OPENCLAW_DISABLE_BONJOUR=1 \
+    PYTHONPATH=/usr/local/lib/openclaw-ephemeral \
+    PYTHONUNBUFFERED=1
+
+RUN install -d -o root -g root -m 0700 "${OPENCLAW_STATE_DIR}"
+
+COPY build/install-note-release.sh /usr/local/lib/openclaw-ephemeral/install-note-release.sh
+RUN chmod 0755 /usr/local/lib/openclaw-ephemeral/install-note-release.sh
+
+RUN NOTE_RELEASE_TAG="${NOTE_RELEASE_TAG}" \
+    NOTE_RELEASE_SHA256="${NOTE_RELEASE_SHA256}" \
+    /usr/local/lib/openclaw-ephemeral/install-note-release.sh \
+ && python3 - <<'PY'
+from pathlib import Path
+
+root = Path("/root/.openclaw")
+for path in root.glob("openclaw.json*"):
+    if path.is_file() or path.is_symlink():
+        path.unlink()
+PY
+
+USER root
+COPY openclaw_ephemeral/ /usr/local/lib/openclaw-ephemeral/openclaw_ephemeral/
+COPY openclaw-ephemeral.py /usr/local/bin/openclaw-ephemeral.py
+COPY runtime/yolo.sh /usr/local/bin/openclaw-ephemeral-yolo
+RUN chmod 0755 /usr/local/bin/openclaw-ephemeral.py /usr/local/bin/openclaw-ephemeral-yolo \
+ && chown -R root:root /usr/local/lib/openclaw-ephemeral \
+      /usr/local/bin/openclaw-ephemeral.py /usr/local/bin/openclaw-ephemeral-yolo
+
+USER root
+WORKDIR /app
+EXPOSE 18789
+STOPSIGNAL SIGTERM
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=5 \
+  CMD curl -fsS "http://127.0.0.1:${OPENCLAW_GATEWAY_PORT}/healthz" >/dev/null || exit 1
+
+ENTRYPOINT ["tini", "-s", "--", "/usr/local/bin/openclaw-ephemeral.py"]
+CMD ["run"]
