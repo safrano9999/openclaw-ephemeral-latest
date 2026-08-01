@@ -42,7 +42,7 @@ bypasses are not emitted.
 Target image:
 
 ```text
-docker.io/safrano9999/openclaw-ephemeral-testing:latest
+ghcr.io/safrano9999/openclaw-ephemeral-testing:latest
 ```
 
 Example:
@@ -51,7 +51,7 @@ Example:
 docker run --rm \
   -e OPENCLAW_GATEWAY_TOKEN='replace-with-a-secret' \
   -p 18789:18789 \
-  docker.io/safrano9999/openclaw-ephemeral-testing:latest
+  ghcr.io/safrano9999/openclaw-ephemeral-testing:latest
 ```
 
 ## Tests

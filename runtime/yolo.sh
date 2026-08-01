@@ -6,8 +6,8 @@ set -euo pipefail
 # normalized to the OpenClaw 2026.7.1 tools.exec.mode form.
 openclaw config unset tools.exec.mode >/dev/null 2>&1 || true
 openclaw exec-policy preset yolo
-openclaw config unset tools.exec.security
-openclaw config unset tools.exec.ask
+openclaw config unset tools.exec.security >/dev/null 2>&1 || true
+openclaw config unset tools.exec.ask >/dev/null 2>&1 || true
 openclaw config set agents.defaults.sandbox.mode '"off"' --strict-json
 openclaw config set tools.profile '"full"' --strict-json
 openclaw config set tools.fs.workspaceOnly false --strict-json

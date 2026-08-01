@@ -13,5 +13,5 @@ A releasable build requires:
 - a successful unit-test job before build and push
 
 The published repository is
-`docker.io/safrano9999/openclaw-ephemeral-testing`; its rolling tag is
+`ghcr.io/safrano9999/openclaw-ephemeral-testing`; its rolling tag is
 `latest`.

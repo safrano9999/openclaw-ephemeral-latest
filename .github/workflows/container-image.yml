@@ -1,3 +1,4 @@
+# Source of truth: SCRIPTS/githubactions. Generated copies are overwritten.
 name: openclaw-ephemeral-testing build_image
 
 on:
@@ -33,13 +34,14 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: openclaw-ephemeral-testing-${{ github.ref }}
   cancel-in-progress: false
 
 env:
-  IMAGE_NAME: docker.io/safrano9999/openclaw-ephemeral-testing
+  IMAGE_NAME: ghcr.io/safrano9999/openclaw-ephemeral-testing
   OPENCLAW_VERSION: 2026.7.2-beta.5
   OPENCLAW_SOURCE_COMMIT: ee929dbb857c717a60f3b2b502db5a6dd31b5c11
   OPENCLAW_BASE_IMAGE: docker.io/openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
@@ -142,11 +144,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish tested image
         uses: docker/build-push-action@v6
