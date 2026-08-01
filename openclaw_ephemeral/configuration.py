@@ -164,18 +164,37 @@ def _telegram_config(environ: Mapping[str, str]) -> dict[str, Any]:
     return {"channels": {"telegram": telegram}}
 
 
-def _plugins_config(note_full_mode: bool) -> dict[str, Any]:
+def _extension_load_paths(destination: Path) -> list[str]:
+    """Return installed OpenClaw extensions in deterministic load order."""
+
+    extensions_dir = destination.parent / "extensions"
+    try:
+        candidates = sorted(extensions_dir.iterdir(), key=lambda path: path.name)
+    except FileNotFoundError:
+        return []
+    return [
+        str(path)
+        for path in candidates
+        if path.is_dir() and (path / "openclaw.plugin.json").is_file()
+    ]
+
+
+def _plugins_config(note_full_mode: bool, destination: Path) -> dict[str, Any]:
     # The deterministic OpenClaw patch supplies dummy/dummy. The separately
     # installed NOTE extension supplies dummy/note and its direct-capture hook.
     note: dict[str, Any] = {"enabled": True}
     if note_full_mode:
         note["hooks"] = {"allowConversationAccess": True}
-    return {
+    plugins: dict[str, Any] = {
         "entries": {
             "codex": {"enabled": True},
             "note": note,
         }
     }
+    load_paths = _extension_load_paths(destination)
+    if load_paths:
+        plugins["load"] = {"paths": load_paths}
+    return plugins
 
 
 def _trusted_container_tools() -> dict[str, Any]:
@@ -288,7 +307,7 @@ def build_config(
             primary_model,
             allowlist,
         ),
-        "plugins": _plugins_config(note_full_mode),
+        "plugins": _plugins_config(note_full_mode, destination),
         "tools": _trusted_container_tools(),
     }
     custom_models = _models_config(providers)

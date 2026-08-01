@@ -115,6 +115,32 @@ class ConfigBuilderTests(unittest.TestCase):
             self.assertIn(DUMMY_MODEL, config["agents"]["defaults"]["models"])
             self.assertIn(NOTE_MODEL, config["agents"]["defaults"]["models"])
 
+    def test_installed_extensions_are_explicit_plugin_load_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            destination = Path(raw) / "state" / "openclaw.json"
+            extensions = destination.parent / "extensions"
+            for name in ("note", "kachelmann"):
+                plugin = extensions / name
+                plugin.mkdir(parents=True)
+                (plugin / "openclaw.plugin.json").write_text(
+                    '{}\n',
+                    encoding="utf-8",
+                )
+            (extensions / "not-a-plugin").mkdir()
+
+            config, _, _ = build_config(
+                {"HOME": raw},
+                destination=destination,
+            )
+
+            self.assertEqual(
+                config["plugins"]["load"]["paths"],
+                [
+                    str(extensions / "kachelmann"),
+                    str(extensions / "note"),
+                ],
+            )
+
     def test_native_and_repeated_custom_models_remain_available(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             config, primary, _ = build_config(
