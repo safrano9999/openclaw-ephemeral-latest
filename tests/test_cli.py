@@ -224,6 +224,8 @@ class CliLifecycleTests(unittest.TestCase):
                     "lan",
                     "--port",
                     "19000",
+                    "--auth",
+                    "token",
                 ],
             )
 

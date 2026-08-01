@@ -300,7 +300,7 @@ class CompleteConfigureTests(unittest.TestCase):
                 configure(
                     {
                         "HOME": raw,
-                        "OPENCLAW_CONFIG": str(destination),
+                        "OPENCLAW_CONFIG_PATH": str(destination),
                     }
                 )
 
@@ -373,7 +373,7 @@ class CompleteConfigureTests(unittest.TestCase):
                 result = configure(
                     {
                         "HOME": raw,
-                        "OPENCLAW_CONFIG": str(destination),
+                        "OPENCLAW_CONFIG_PATH": str(destination),
                         "OPENAI_V1_KEY": "custom-secret",
                     }
                 )
