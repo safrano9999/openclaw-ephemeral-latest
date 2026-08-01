@@ -3,6 +3,7 @@ set -euo pipefail
 
 : "${NOTE_RELEASE_TAG:?NOTE_RELEASE_TAG is required}"
 : "${NOTE_RELEASE_SHA256:?NOTE_RELEASE_SHA256 is required}"
+: "${OPENCLAW_STATE_DIR:?OPENCLAW_STATE_DIR is required}"
 
 asset=note-latest.zip
 release_url="https://github.com/safrano9999/NOTE/releases/download/${NOTE_RELEASE_TAG}"
@@ -18,12 +19,12 @@ openclaw plugins install \
     --dangerously-force-unsafe-install \
     "${temporary}/${asset}"
 
-[ -f "${OPENCLAW_CONFIG_DIR}/extensions/note/openclaw.plugin.json" ] || {
-    printf 'NOTE plugin was not installed below %s\n' "$OPENCLAW_CONFIG_DIR" >&2
+[ -f "${OPENCLAW_STATE_DIR}/extensions/note/openclaw.plugin.json" ] || {
+    printf 'NOTE plugin was not installed below %s\n' "$OPENCLAW_STATE_DIR" >&2
     exit 1
 }
 
-note_root="${OPENCLAW_CONFIG_DIR}/extensions/note"
+note_root="${OPENCLAW_STATE_DIR}/extensions/note"
 note_python="$("${note_root}/scripts/setup-python.sh")"
 "$note_python" -c 'import dotenv, sqlalchemy, psycopg, pymysql'
 rm -rf "${note_root}/.uv"
