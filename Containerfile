@@ -1,5 +1,5 @@
 # The runtime base deliberately stays fixed across openclaw-ephemeral releases.
-FROM openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
+FROM docker.io/openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
 
 ARG OPENCLAW_VERSION=2026.7.2-beta.5
 ARG OPENCLAW_SOURCE_COMMIT=ee929dbb857c717a60f3b2b502db5a6dd31b5c11
