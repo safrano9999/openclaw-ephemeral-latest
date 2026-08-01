@@ -1,4 +1,4 @@
-name: openclaw-ephemeral-testing image
+name: openclaw-ephemeral-testing build_image
 
 on:
   workflow_dispatch:
