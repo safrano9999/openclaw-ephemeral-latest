@@ -1,5 +1,6 @@
 # The runtime base deliberately stays fixed across openclaw-ephemeral releases.
-FROM docker.io/openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9
+FROM docker.io/openclaw/openclaw:2026.7.2-beta.5-slim@sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9 AS openclaw-upstream
+FROM openclaw-upstream
 
 ARG OPENCLAW_VERSION=2026.7.2-beta.5
 ARG OPENCLAW_SOURCE_COMMIT=ee929dbb857c717a60f3b2b502db5a6dd31b5c11
@@ -37,6 +38,9 @@ RUN chmod 0755 /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.
     OPENCLAW_DETERMINISTIC_ASSET="${OPENCLAW_DETERMINISTIC_ASSET}" \
     OPENCLAW_DETERMINISTIC_SHA256="${OPENCLAW_DETERMINISTIC_SHA256}" \
     /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh
+
+COPY --from=openclaw-upstream /app/dist/control-ui/ /app/dist/control-ui/
+RUN test -s /app/dist/control-ui/index.html
 
 # Preserve the trusted-container local-media behavior already used by
 # safrano9999-openclaw. This only extends OpenClaw's outbound media roots.
