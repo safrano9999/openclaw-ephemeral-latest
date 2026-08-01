@@ -179,7 +179,4 @@ jobs:
             --repo safrano9999/safrano9999-openclaw-testing \
             --ref main \
             -f "push_latest=${{ inputs.push_latest }}" \
-            -f "image_tag=${{ inputs.image_tag }}" \
-            -f "deterministic_release_tag=${{ inputs.deterministic_release_tag }}" \
-            -f "deterministic_asset=${{ inputs.deterministic_asset }}" \
-            -f "deterministic_sha256=${{ inputs.deterministic_sha256 }}"
+            -f "image_tag=${{ inputs.image_tag }}"
