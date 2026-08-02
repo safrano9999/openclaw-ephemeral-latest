@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from collections.abc import Callable, Mapping, Sequence
@@ -55,7 +56,52 @@ def _origin(host: str, port: int) -> str:
     return f"http://{host}:{port}"
 
 
-def _gateway_config(environ: Mapping[str, str]) -> dict[str, Any]:
+def _tailscale_hosts(
+    environ: Mapping[str, str],
+    *,
+    runner: Callable[..., Any],
+) -> list[str]:
+    ts_hostname = clean(environ.get("TS_HOSTNAME")).rstrip(".")
+    if not ts_hostname:
+        return []
+
+    hosts: list[str] = []
+    try:
+        result = runner(
+            ["tailscale", "status", "--json"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        payload = json.loads(result.stdout)
+    except (
+        FileNotFoundError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        json.JSONDecodeError,
+    ):
+        payload = {}
+
+    self_info = payload.get("Self") if isinstance(payload, dict) else {}
+    if isinstance(self_info, dict):
+        dns_name = clean(self_info.get("DNSName")).rstrip(".")
+        if dns_name:
+            hosts.append(dns_name)
+        for ip_addr in self_info.get("TailscaleIPs") or []:
+            ip_addr = clean(ip_addr)
+            if ip_addr:
+                hosts.append(ip_addr)
+    if "." in ts_hostname:
+        hosts.append(ts_hostname)
+    return list(dict.fromkeys(hosts))
+
+
+def _gateway_config(
+    environ: Mapping[str, str],
+    *,
+    tailscale_runner: Callable[..., Any],
+) -> dict[str, Any]:
     port = integer(
         environ,
         "OPENCLAW_GATEWAY_PORT",
@@ -75,6 +121,13 @@ def _gateway_config(environ: Mapping[str, str]) -> dict[str, Any]:
         _origin("localhost", port),
         _origin(host, publish_port),
     ]
+    for tailscale_host in _tailscale_hosts(environ, runner=tailscale_runner):
+        origins.extend(
+            [
+                _origin(tailscale_host, port),
+                _origin(tailscale_host, publish_port),
+            ]
+        )
     origins = list(dict.fromkeys(origins))
 
     gateway: dict[str, Any] = {
@@ -273,6 +326,7 @@ def build_config(
     destination: Path,
     native_models: Sequence[str] = (),
     openai_v1_providers: Sequence[OpenAIV1Provider] = (),
+    tailscale_runner: Callable[..., Any] = subprocess.run,
 ) -> tuple[dict[str, Any], str, bool]:
     """Build a complete config without opening the destination file."""
 
@@ -303,7 +357,7 @@ def build_config(
 
     config: dict[str, Any] = {
         "meta": {"migrations": {"modelPolicyAllowlist": True}},
-        "gateway": _gateway_config(environ),
+        "gateway": _gateway_config(environ, tailscale_runner=tailscale_runner),
         "agents": _main_agent_config(
             environ,
             destination,
@@ -346,6 +400,7 @@ def configure(
         destination=destination,
         native_models=native_models,
         openai_v1_providers=providers,
+        tailscale_runner=runner,
     )
 
     secret_values = {

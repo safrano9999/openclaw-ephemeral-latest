@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -281,6 +282,55 @@ class ConfigBuilderTests(unittest.TestCase):
             serialized = json.dumps(config)
             self.assertNotIn(secrets["gateway"], serialized)
             self.assertNotIn(secrets["telegram"], serialized)
+
+    def test_gateway_adds_tailscale_origins(self) -> None:
+        status = {
+            "Self": {
+                "DNSName": "runtime.example.ts.net.",
+                "TailscaleIPs": ["100.64.0.10", "fd7a:115c:a1e0::10"],
+            }
+        }
+
+        def tailscale_runner(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess([], 0, stdout=json.dumps(status))
+
+        with tempfile.TemporaryDirectory() as raw:
+            config, _, _ = build_config(
+                {
+                    "HOME": raw,
+                    "TS_HOSTNAME": "configured.example.ts.net",
+                    "OPENCLAW_GATEWAY_PORT": "19000",
+                    "OPENCLAW_GATEWAY_PUBLISH_PORT": "29000",
+                },
+                destination=Path(raw) / "openclaw.json",
+                tailscale_runner=tailscale_runner,
+            )
+
+        origins = config["gateway"]["controlUi"]["allowedOrigins"]
+        for host in (
+            "runtime.example.ts.net",
+            "100.64.0.10",
+            "[fd7a:115c:a1e0::10]",
+            "configured.example.ts.net",
+        ):
+            self.assertIn(f"http://{host}:19000", origins)
+            self.assertIn(f"http://{host}:29000", origins)
+
+    def test_gateway_tolerates_unavailable_tailscale(self) -> None:
+        def unavailable(*_args: object, **_kwargs: object) -> None:
+            raise subprocess.CalledProcessError(1, "tailscale")
+
+        with tempfile.TemporaryDirectory() as raw:
+            config, _, _ = build_config(
+                {"HOME": raw, "TS_HOSTNAME": "runtime"},
+                destination=Path(raw) / "openclaw.json",
+                tailscale_runner=unavailable,
+            )
+
+        self.assertIn(
+            "http://127.0.0.1:18789",
+            config["gateway"]["controlUi"]["allowedOrigins"],
+        )
 
     def test_custom_provider_secret_is_only_an_env_reference(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
