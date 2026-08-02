@@ -251,6 +251,7 @@ class ConfigBuilderTests(unittest.TestCase):
                     "OPENCLAW_GATEWAY_PUBLISH_PORT": "29000",
                     "OPENCLAW_GATEWAY_TOKEN": secrets["gateway"],
                     "OPENCLAW_TELEGRAMTOKEN": secrets["telegram"],
+                    "OPENCLAW_TELEGRAM_CHAT_ID": "5475045993",
                 },
                 destination=Path(raw) / "openclaw.json",
             )
@@ -277,7 +278,10 @@ class ConfigBuilderTests(unittest.TestCase):
                 telegram["accounts"]["default"]["streaming"],
                 {"mode": "partial"},
             )
-            self.assertEqual(config["commands"]["ownerAllowFrom"], ["*"])
+            self.assertEqual(
+                config["commands"]["ownerAllowFrom"],
+                ["telegram:5475045993"],
+            )
             self.assertNotIn("bindings", config)
             serialized = json.dumps(config)
             self.assertNotIn(secrets["gateway"], serialized)
