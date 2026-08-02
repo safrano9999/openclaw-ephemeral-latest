@@ -42,23 +42,6 @@ RUN chmod 0755 /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.
 COPY --from=openclaw-upstream /app/dist/control-ui/ /app/dist/control-ui/
 RUN test -s /app/dist/control-ui/index.html
 
-# Preserve the trusted-container local-media behavior already used by
-# safrano9999-openclaw. This only extends OpenClaw's outbound media roots.
-RUN python3 - <<'PY'
-from pathlib import Path
-
-root = Path("/app/dist")
-target = 'path.join(resolvedStateDir, "sandboxes")'
-replacement = target + ',\n\t\t"/"'
-for path in root.glob("local-roots-*.js"):
-    text = path.read_text()
-    if replacement not in text:
-        path.write_text(text.replace(target, replacement))
-    break
-else:
-    raise SystemExit("OpenClaw local-roots bundle not found")
-PY
-
 ENV HOME=/root \
     OPENCLAW_STATE_DIR=/root/.openclaw \
     OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json \
