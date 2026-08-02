@@ -161,7 +161,10 @@ def _telegram_config(environ: Mapping[str, str]) -> dict[str, Any]:
         },
         "defaultAccount": "default",
     }
-    return {"channels": {"telegram": telegram}}
+    return {
+        "channels": {"telegram": telegram},
+        "commands": {"ownerAllowFrom": ["*"]},
+    }
 
 
 def _extension_load_paths(destination: Path) -> list[str]:

@@ -276,6 +276,7 @@ class ConfigBuilderTests(unittest.TestCase):
                 telegram["accounts"]["default"]["streaming"],
                 {"mode": "partial"},
             )
+            self.assertEqual(config["commands"]["ownerAllowFrom"], ["*"])
             self.assertNotIn("bindings", config)
             serialized = json.dumps(config)
             self.assertNotIn(secrets["gateway"], serialized)
