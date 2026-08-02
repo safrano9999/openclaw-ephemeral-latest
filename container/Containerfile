@@ -31,7 +31,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl python3 \
  && rm -rf /var/lib/apt/lists/*
 
-COPY build/install-openclaw-deterministic.sh /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh
+COPY container/build/install-openclaw-deterministic.sh /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh
 RUN chmod 0755 /usr/local/lib/openclaw-ephemeral/install-openclaw-deterministic.sh \
  && OPENCLAW_VERSION="${OPENCLAW_VERSION}" \
     OPENCLAW_DETERMINISTIC_RELEASE_TAG="${OPENCLAW_DETERMINISTIC_RELEASE_TAG}" \
@@ -70,7 +70,7 @@ ENV HOME=/root \
 
 RUN install -d -o root -g root -m 0700 "${OPENCLAW_STATE_DIR}"
 
-COPY build/install-note-release.sh /usr/local/lib/openclaw-ephemeral/install-note-release.sh
+COPY container/build/install-note-release.sh /usr/local/lib/openclaw-ephemeral/install-note-release.sh
 RUN chmod 0755 /usr/local/lib/openclaw-ephemeral/install-note-release.sh
 
 RUN NOTE_RELEASE_TAG="${NOTE_RELEASE_TAG}" \
@@ -88,7 +88,7 @@ PY
 USER root
 COPY openclaw_ephemeral/ /usr/local/lib/openclaw-ephemeral/openclaw_ephemeral/
 COPY openclaw-ephemeral.py /usr/local/bin/openclaw-ephemeral.py
-COPY runtime/yolo.sh /usr/local/bin/openclaw-ephemeral-yolo
+COPY container/runtime/yolo.sh /usr/local/bin/openclaw-ephemeral-yolo
 RUN chmod 0755 /usr/local/bin/openclaw-ephemeral.py /usr/local/bin/openclaw-ephemeral-yolo \
  && chown -R root:root /usr/local/lib/openclaw-ephemeral \
       /usr/local/bin/openclaw-ephemeral.py /usr/local/bin/openclaw-ephemeral-yolo

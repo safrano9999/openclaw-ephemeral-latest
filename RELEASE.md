@@ -6,7 +6,7 @@ This repository is the Beta 5 testing lane. Stable tags belong to the separate
 A releasable build requires:
 
 - the immutable upstream image digest recorded in `pinned.md` and
-  `Containerfile`
+  `container/Containerfile`
 - source commit `ee929dbb857c717a60f3b2b502db5a6dd31b5c11`
 - an immutable compatibility release tag, asset name, and SHA-256 supplied
   through the three required `OPENCLAW_DETERMINISTIC_*` build arguments

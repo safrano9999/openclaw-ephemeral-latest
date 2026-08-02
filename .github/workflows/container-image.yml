@@ -80,10 +80,10 @@ jobs:
             exit 1
           }
 
-          grep -F -- "$OPENCLAW_BASE_IMAGE" Containerfile >/dev/null
-          grep -F -- "ARG OPENCLAW_VERSION=${OPENCLAW_VERSION}" Containerfile >/dev/null
-          grep -F -- "ARG OPENCLAW_SOURCE_COMMIT=${OPENCLAW_SOURCE_COMMIT}" Containerfile >/dev/null
-          grep -F -- "$DETERMINISTIC_REPOSITORY" build/install-openclaw-deterministic.sh >/dev/null
+          grep -F -- "$OPENCLAW_BASE_IMAGE" container/Containerfile >/dev/null
+          grep -F -- "ARG OPENCLAW_VERSION=${OPENCLAW_VERSION}" container/Containerfile >/dev/null
+          grep -F -- "ARG OPENCLAW_SOURCE_COMMIT=${OPENCLAW_SOURCE_COMMIT}" container/Containerfile >/dev/null
+          grep -F -- "$DETERMINISTIC_REPOSITORY" container/build/install-openclaw-deterministic.sh >/dev/null
 
           {
             printf 'release_tag=%s\n' "$RELEASE_TAG"
@@ -155,7 +155,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Containerfile
+          file: container/Containerfile
           push: true
           tags: ${{ steps.metadata.outputs.tags }}
           build-args: |
