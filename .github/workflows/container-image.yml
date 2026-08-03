@@ -167,7 +167,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger plugin-complete safrano9999-openclaw-testing image
+      - name: Trigger safrano9999-openclaw-testing image
         if: ${{ inputs.cascade }}
         env:
           GH_TOKEN: ${{ secrets.CONTAINER_ACTIONS_TOKEN }}
@@ -175,9 +175,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           : "${GH_TOKEN:?Missing required secret CONTAINER_ACTIONS_TOKEN}"
-          gh workflow run safrano9999-openclaw-testing-image.yml \
-            --repo safrano9999/CONTAINER \
+          gh workflow run container-image.yml \
+            --repo safrano9999/safrano9999-openclaw-testing \
             --ref main \
             -f "push_latest=${{ inputs.push_latest }}" \
-            -f "image_tag=${{ inputs.image_tag }}" \
-            -f "plugin_release_tag=counter"
+            -f "image_tag=${{ inputs.image_tag }}"
