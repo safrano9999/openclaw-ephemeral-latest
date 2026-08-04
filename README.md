@@ -47,7 +47,7 @@ ghcr.io/safrano9999/openclaw-ephemeral-testing:latest
 
 Its immutable upstream pin is:
 
-- Image: `docker.io/openclaw/openclaw:2026.7.2-beta.5-slim`
+- Image: `ghcr.io/openclaw/openclaw:2026.7.2-beta.5-slim`
 - Digest: `sha256:86e0a480a37d879311c9723ad2487cca9eb6c1925fa4732dec3f505b4728eee9`
 - Source commit: `ee929dbb857c717a60f3b2b502db5a6dd31b5c11`
 
