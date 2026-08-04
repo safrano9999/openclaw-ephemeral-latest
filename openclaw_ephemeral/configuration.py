@@ -188,7 +188,7 @@ def _telegram_config(environ: Mapping[str, str]) -> dict[str, Any]:
         "groupAllowFrom": ["*"],
         "groups": {"*": {"requireMention": False}},
         "capabilities": {"inlineButtons": "dm"},
-        "commands": {"native": False, "nativeSkills": False},
+        "commands": {"native": True, "nativeSkills": False},
         "streaming": {"mode": "off"},
         "execApprovals": {
             "enabled": False,

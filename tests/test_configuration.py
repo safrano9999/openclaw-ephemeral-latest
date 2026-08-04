@@ -275,6 +275,10 @@ class ConfigBuilderTests(unittest.TestCase):
             )
             self.assertEqual(telegram["streaming"], {"mode": "off"})
             self.assertEqual(
+                telegram["commands"],
+                {"native": True, "nativeSkills": False},
+            )
+            self.assertEqual(
                 telegram["accounts"]["default"]["streaming"],
                 {"mode": "partial"},
             )
