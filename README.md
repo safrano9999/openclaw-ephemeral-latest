@@ -1,4 +1,4 @@
-# openclaw-ephemeral-latest
+# openclaw-ephemeral-testing
 
 Testing lane of the environment-driven Python runtime for OpenClaw. It rebuilds
 the complete `openclaw.json` from the current process environment without
