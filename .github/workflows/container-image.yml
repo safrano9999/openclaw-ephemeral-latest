@@ -1,5 +1,6 @@
 # Source of truth: SCRIPTS/githubactions. Generated copies are overwritten.
 name: openclaw-ephemeral-testing build_image
+run-name: ${{ inputs.monitor_id != '' && format('{0} [monitor:{1}:{2}]', github.workflow, inputs.monitor_id, inputs.monitor_final) || github.workflow }}
 
 on:
   workflow_dispatch:
@@ -18,6 +19,16 @@ on:
         description: Trigger safrano9999-openclaw-testing after publishing
         required: true
         default: false
+        type: boolean
+      monitor_id:
+        description: Optional event-monitor correlation id
+        required: false
+        default: ""
+        type: string
+      monitor_final:
+        description: This run is the final monitored cascade stage
+        required: true
+        default: true
         type: boolean
       deterministic_release_tag:
         description: Immutable release tag from safrano9999/openclaw-deterministic-latest
@@ -179,4 +190,6 @@ jobs:
             --repo safrano9999/safrano9999-openclaw-testing \
             --ref main \
             -f "push_latest=${{ inputs.push_latest }}" \
-            -f "image_tag=${{ inputs.image_tag }}"
+            -f "image_tag=${{ inputs.image_tag }}" \
+            -f "monitor_id=${{ inputs.monitor_id }}" \
+            -f "monitor_final=true"
